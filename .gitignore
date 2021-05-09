@@ -1,0 +1,4 @@
+*.o
+test.txt
+pi-actuator-server
+test-client

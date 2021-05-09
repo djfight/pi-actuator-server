@@ -1,8 +1,9 @@
 /**
- * Author: Jarred Light
- * Date  : 05/09/2021
- * Purpose: connects to the pi-actuator-server for testing
-*/
+ * Test Client
+ * Connects to the pi-actuator-server for testing.
+ * @author Jarred Light <jlightd@gmail.com>
+ */
+
 #ifndef TESTCLIENT
 #define TESTCLIENT
 
@@ -47,34 +48,27 @@ using namespace std;
 #define SOCKETINFOLEN 81
 #endif
 
-int main( int argc, char** argv )
+int main(int argc, char** argv)
 {
-    pthread_t* robots;//create an array of threads for the robots
-    fstream setupFileReader;//setup a fstream to read the setup file
-    fstream commandFileReader;//setup a fstream to read the command file
-    string line;//used for reading in files
-    message m;//setup a message struct for logging
-    int numberOfRobots, maxX, maxY;//instantiate the max X and Y
-
     // getopt( ) requires char* arguments
     char hostname[STRLEN] = "", portnumber[STRLEN] = "", logfilename[STRLEN] = "";
-    // For return value of getopt( )
-    char c;
+
     // argc is the number of command-line arguments, always at least 1
     cout << "# command line arguments = " << argc << endl;
 
     // This depends on the specs - suppost that the command line
     // argument -s is required; if not present, quit
-    if ( argc == 1 ) 
+    if (argc == 1) 
     {
-        cout << "Usage: params -s setupfilename* -c cmdfilename -l logfilename" << endl;
+        cout << "Usage: params -h hostname* -p portnumber -l logfilename" << endl;
         exit(0);
     }
 
-    // Use getopt( ) to loop through -s, -c, -l flags
-    while ( (c = getopt(argc, argv, "h:p:l:")) != -1 ) 
+    // Use getopt() to loop through -h, -p, -l flags
+    int optionIndex;
+    while ( (optionIndex = getopt(argc, argv, "h:p:l:")) != -1)
     {
-        switch (c)
+        switch (optionIndex)
         {
             case 'h': strncpy(hostname, optarg, STRLEN-1);
                 break;

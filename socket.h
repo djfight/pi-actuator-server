@@ -1,7 +1,7 @@
 /**
  * Class: Socket
  * This class is an abstract representation of setting up a socket connection.
- * @author Jarred Light <lightdj@etsu.edu>
+ * @author Jarred Light <jlightd@gmail.com>
  */
 #ifndef SERVER_H
 #define SERVER_H

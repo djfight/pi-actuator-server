@@ -1,8 +1,7 @@
-//
-// class log
-//
-// This class encapsulates the log file functionality
-//
+/**
+ * A simple logger class.
+ * @author Jarred Light <jlightd@gmail.com>
+ */
 
 // Multiple-include protection
 #ifndef LOG_H

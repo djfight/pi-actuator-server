@@ -1,3 +1,8 @@
+/**
+ * A simple logger class.
+ * @author Jarred Light <jlightd@gmail.com>
+ */
+
 #include <string.h>
 #include <string>
 #include <ctime>

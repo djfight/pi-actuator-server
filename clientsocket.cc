@@ -1,8 +1,9 @@
 /**
  * Class: ClientSocket
  * This class represents a client connecting to a server and sending messages.
- * @author Jarred Light <lightdj@etsu.edu>
+ * @author Jarred Light <jlightd@gmail.com>
  */
+
 #ifndef CLIENTSOCKET_CC
 #define CLIENTSOCKET_CC
 
@@ -68,10 +69,11 @@ class ClientSocket : public Socket
 			: strncpy(msg.payload, "log.txt", sizeof(msg.payload));
 		
 		//send the message
-        value = write(this->sockdesc, (char*)&msg, sizeof(message));
+        this->value = write(this->sockdesc, (char*)&msg, sizeof(message));
     }
 
     /**
+     * // todo: refactor this to use a different struct
      * This function writes down a pipe to the logging process.
      * @param from
      * @param payload

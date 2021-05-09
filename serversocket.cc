@@ -1,7 +1,7 @@
 /**
- * Class: RobotServer 
+ * Class: ServerSocket
  * This class represents a server connection class.
- * @author Jarred Light <lightdj@etsu.edu>
+ * @author Jarred Light <jlightd@gmail.com>
  */
 #ifndef SERVERSOCKET_CC
 #define SERVERSOCKET_CC
@@ -35,17 +35,17 @@ class ServerSocket : public Socket
       {
          this->portnum = portnum.c_str();
       }
+
       /**
         * This function handles client communication to the server.
         */
-      static void* handleRequest( void* arg )
+      static void* handleRequest(void* arg)
       {
-         pthread_detach( pthread_self() );
+         pthread_detach(pthread_self());
+
          message msg;
 
-         ServerSocket* serverSocket;
-
-         serverSocket = ((ServerSocket*)arg);
+         ServerSocket* serverSocket = ((ServerSocket*)arg);
 
          // Show the actual FILE descriptor used
          cout << "Server thread, connection = " << serverSocket->connection << endl;
@@ -53,12 +53,12 @@ class ServerSocket : public Socket
          //read the setup file name from the client
          serverSocket->value = read(serverSocket->connection, (char*)&msg, sizeof(message));
 
-         if ( serverSocket->value < 0 )
+         if (serverSocket->value < 0)
          {
             cout << "Error on recv" << endl;
             pthread_exit(0);
          }
-         else if ( serverSocket->value == 0 )
+         else if (serverSocket->value == 0)
          {
             cout << "End of transmission" << endl;
             pthread_exit(0);
@@ -81,12 +81,12 @@ class ServerSocket : public Socket
             // Get the next message
             serverSocket->value = read(serverSocket->connection, (char*)&msg, sizeof(message));
 
-            if ( serverSocket->value < 0 )
+            if (serverSocket->value < 0)
             {
                cout << "Error on recv" << endl;
                pthread_exit(0);
             }
-            else if ( serverSocket->value == 0 )
+            else if (serverSocket->value == 0)
             {
                cout << "End of transmission" << endl;
                pthread_exit(0);
@@ -125,7 +125,7 @@ class ServerSocket : public Socket
          }
 
          //store addressing information
-         if( getaddrinfo( "0.0.0.0", this->portnum, NULL, &this->myinfo) != 0 )
+         if( getaddrinfo("0.0.0.0", this->portnum, NULL, &this->myinfo) != 0)
          {
             cout << "Error getting address" << endl;
             exit(0);
@@ -151,7 +151,7 @@ class ServerSocket : public Socket
 
          this->connection = accept(this->sockdesc, NULL, NULL);//wait for client connection
 
-         if(this->connection < 0 )
+         if(this->connection < 0)
          {
              cout << "Error in accept" << endl;
              exit(0);

@@ -1,3 +1,10 @@
+/**
+ * Raspberry PI - Actuator Server
+ * This program will start up a TCP socket connection to listen for requests
+ * to actuate GPIO pins.
+ * @author Jarred Light <jlightd@gmail.com>
+ */
+
 #ifndef PIACTUATORSERVER
 #define PIACTUATORSERVER
 
@@ -41,14 +48,13 @@ int main(int argc, char** argv )
       switch(optionIndex)
       {
          case 'p':
-		 strncpy(portnum, optarg, STRLEN -1);
-		 cout << "Port Number: " << portnum << endl;
-		 break;
+            strncpy(portnum, optarg, STRLEN -1);
+            break;
       }
-      cout << "Still running..." << endl;
    }
 
    cout << "Port Number: " << portnum << endl;
+
    //create the server socket and setup the connection
    serverSocket = new ServerSocket(portnum);
    serverSocket->setupSocketConnection();

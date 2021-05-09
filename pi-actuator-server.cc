@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <errno.h>
+#include <getopt.h>
 #include "message.h"
 #include "log.h"
 #include "serversocket.cc"
@@ -24,7 +25,7 @@ int main(int argc, char** argv )
 {
    Socket* serverSocket;//create a server socket pointer
    char portnum[STRLEN];//create a portnumber array
-   char c;//for return value of getopt()
+   int optionIndex;//for return value of getopt()
 
    cout << "# command line arguments = " << argc << endl;
 
@@ -35,13 +36,16 @@ int main(int argc, char** argv )
    }
    
    //get command params
-   while((c = getopt(argc, argv, "p:")) != -1)
+   while((optionIndex = getopt(argc, argv, "p:")) != -1)
    {
-      switch(c)
-	  {
-         case 'p': strncpy(portnum, optarg, STRLEN -1);
+      switch(optionIndex)
+      {
+         case 'p':
+		 strncpy(portnum, optarg, STRLEN -1);
+		 cout << "Port Number: " << portnum << endl;
 		 break;
       }
+      cout << "Still running..." << endl;
    }
 
    cout << "Port Number: " << portnum << endl;

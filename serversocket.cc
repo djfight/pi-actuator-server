@@ -53,7 +53,7 @@ class ServerSocket : public Socket
          ServerSocket* serverSocket = ((ServerSocket*)arg);
 
          // Show the actual FILE descriptor used
-         serverSocket->logger->writeInfoMessage("Server thread, connection = " + serverSocket->connection);
+         serverSocket->logger->writeInfoMessage("Server thread, connection = " + to_string(serverSocket->connection));
 
          //read the setup file name from the client
          serverSocket->value = read(serverSocket->connection, (char*)&msg, sizeof(message));
@@ -149,7 +149,7 @@ class ServerSocket : public Socket
          }
          else
          {
-            this->logger->writeInfoMessage("Calling pthread_create where connection number = " + this->connection);
+            this->logger->writeInfoMessage("Calling pthread_create where connection number = " + to_string(this->connection));
 
             // exist status of spawned thread
             int exitStatus;
@@ -158,7 +158,7 @@ class ServerSocket : public Socket
             this->logger->writeInfoMessage("Successfully spawned new thread");
             pthread_join(serverThread, (void**)&exitStatus);
 
-            this->logger->writeInfoMessage("Thread terminated with status code: " + exitStatus);
+            this->logger->writeInfoMessage("Thread terminated with status code = " + to_string(exitStatus));
          }
       }
 

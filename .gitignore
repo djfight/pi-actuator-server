@@ -1,4 +1,5 @@
 *.o
 test.txt
+log.txt
 pi-actuator-server
 test-client

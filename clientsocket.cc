@@ -32,7 +32,7 @@ class ClientSocket : public Socket
    public:
       ClientSocket(string hostname, string portnum, char logfilename[STRLEN])
 	  {
-         Socket::portnum = portnum.c_str();
+         this->portnum = portnum.c_str();
          this->hostname = hostname.c_str();
          this->logfilename = logfilename;
       }
@@ -48,7 +48,7 @@ class ClientSocket : public Socket
            exit(0);
         }
 		
-        if(getaddrinfo(this->hostname, this->portnum, NULL, &this->myinfo) != 0)
+        if(getaddrinfo(this->hostname, this->portnum.c_str(), NULL, &this->myinfo) != 0)
 		{
 		  //store address info
            cout << "Error getting address" << endl;
@@ -62,6 +62,8 @@ class ClientSocket : public Socket
            cout << "Error in connect" << endl;
            exit(0);
         }
+
+        cout << "Connection successful" << endl;
 		  
         //copy the log file name into the buffer if the length is greater than zero otherwise use log.txt
         (strlen(logfilename) > 0) ?
@@ -83,12 +85,19 @@ class ClientSocket : public Socket
         message m;
         m.from = from;
         strncpy(m.payload, payload.c_str(), sizeof(message));
-        value = write(this->sockdesc, (char*)&m, sizeof(message));//send the message
+
+        //send the message
+        this->value = write(this->sockdesc, (char*)&m, sizeof(message));
     }
 
     void closeConnection()
 	{
         close(this->sockdesc);
+    }
+
+    virtual void disconnect()
+    {
+        // todo: cleanup socket
     }
 	
 	private:

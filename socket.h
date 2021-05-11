@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <errno.h>
+#include <string>
 #include "message.h"
 
 class Socket
@@ -18,12 +19,12 @@ class Socket
 	public:
 	   Socket(){}
 	   virtual void setupSocketConnection() = 0;
-	   static void disconnect();
+	   virtual void disconnect() = 0;
 
 	protected:
 	   struct addrinfo* myinfo;
 	   int sockdesc;
-	   const char* portnum;
+	   std::string portnum;
 	   int connection;
 	   int value;
 };

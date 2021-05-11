@@ -24,7 +24,7 @@
 #include "log.h"
 #include "serversocket.cc"
 using namespace std;
-#define STRLEN 81
+#define STRLEN 32
 
 #endif
 
@@ -39,7 +39,7 @@ int main(int argc, char** argv )
    if(argc == 1)
    {
       cout << "Usage: params -p portnum*" << endl;
-      exit(0);
+      exit(1);
    }
    
    //get command params
@@ -53,12 +53,19 @@ int main(int argc, char** argv )
       }
    }
 
-   cout << "Port Number: " << portnum << endl;
+   log logger = log();
+   if(!logger.open())
+   {
+      cout << "An error occurred while trying to open the log file for writing." << endl;
+      exit(1);
+   }
 
    //create the server socket and setup the connection
-   serverSocket = new ServerSocket(portnum);
+   serverSocket = new ServerSocket(portnum, &logger);
    serverSocket->setupSocketConnection();
 
-  return 0;
+   logger.close();
+
+   return 0;
 }
 

@@ -66,7 +66,7 @@ int main(int argc, char** argv)
 
     // Use getopt() to loop through -h, -p, -l flags
     int optionIndex;
-    while ( (optionIndex = getopt(argc, argv, "h:p:l:")) != -1)
+    while ((optionIndex = getopt(argc, argv, "h:p:l:")) != -1)
     {
         switch (optionIndex)
         {
@@ -89,6 +89,5 @@ int main(int argc, char** argv)
     // close the socket connection after everything has finished up
     clientSocket->closeConnection();
 
-    // Requires an integer return value
     return 0;
 }

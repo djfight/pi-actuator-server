@@ -21,7 +21,6 @@
 #include "message.h"
 #include "socket.h"
 #include "log.h"
-#define STRLEN 81
 using namespace std;
 #endif
 
@@ -31,9 +30,14 @@ class ServerSocket : public Socket
       /**
         * This constructor accepts a port number for the socket to bind to.
         */
-      ServerSocket(string portnum)
+      ServerSocket(string portnum, log* logger)
       {
-         this->portnum = portnum.c_str();
+         this->portnum = portnum;
+         this->logger = logger;
+      }
+
+      pthread_t getServerThread() {
+         return this->serverThread;
       }
 
       /**
@@ -41,41 +45,33 @@ class ServerSocket : public Socket
         */
       static void* handleRequest(void* arg)
       {
-         pthread_detach(pthread_self());
+         // Note: Why in the world was this ever in my old OS code? It doesn't work with the join paradigm?
+         // pthread_detach(pthread_self());
 
          message msg;
 
          ServerSocket* serverSocket = ((ServerSocket*)arg);
 
          // Show the actual FILE descriptor used
-         cout << "Server thread, connection = " << serverSocket->connection << endl;
+         serverSocket->logger->writeInfoMessage("Server thread, connection = " + serverSocket->connection);
 
          //read the setup file name from the client
          serverSocket->value = read(serverSocket->connection, (char*)&msg, sizeof(message));
 
          if (serverSocket->value < 0)
          {
-            cout << "Error on recv" << endl;
+            serverSocket->logger->writeErrorMessage("Error on invoking recv()");
             pthread_exit(0);
          }
          else if (serverSocket->value == 0)
          {
-            cout << "End of transmission" << endl;
+            serverSocket->logger->writeInfoMessage("Transmission terminated from client");
             pthread_exit(0);
          }
 
-         cout << "Message received: " << msg.payload << endl;
+         serverSocket->logger->writeInfoMessage(msg.payload);
 
-         //setup the logfilename
-         serverSocket->logger.setLogfileName(msg.payload);
-
-         if(!serverSocket->logger.open())
-         {
-            cout << "An error occurred while trying to open the log file for writing." << endl;
-            pthread_exit(0);
-         }
-
-            // Continue until the message is "quit"
+         // Continue until the message is "quit"
          while ( strcmp(msg.payload, "Q") != 0 )
          {
             // Get the next message
@@ -83,28 +79,20 @@ class ServerSocket : public Socket
 
             if (serverSocket->value < 0)
             {
-               cout << "Error on recv" << endl;
+               serverSocket->logger->writeErrorMessage("Error on invoking recv()");
                pthread_exit(0);
             }
             else if (serverSocket->value == 0)
             {
-               cout << "End of transmission" << endl;
+               serverSocket->logger->writeInfoMessage("Transmission terminated from client");
                pthread_exit(0);
             }
 
-            cout << "Message received: " << msg.payload << endl;
-
-         //write message to log
-            serverSocket->logger.writeLogRecord(msg.payload);
+            //write message to log
+            serverSocket->logger->writeInfoMessage(msg.payload);
          }
 
-         if(!serverSocket->logger.close())
-         {
-            cout << "An error occurred while trying to close the log file." << endl;
-            pthread_exit(0);
-         }
-
-         // Close the socket
+         // Close the connection and gracefully exit
          close(serverSocket->connection);
          pthread_exit(0);
       }
@@ -120,54 +108,66 @@ class ServerSocket : public Socket
 
          if(this->sockdesc < 0)
          {
-            cout << "Error creating socket" << endl;
+            this->logger->writeErrorMessage("Error creating socket");
             exit(0);
          }
 
          //store addressing information
-         if( getaddrinfo("0.0.0.0", this->portnum, NULL, &this->myinfo) != 0)
+         if( getaddrinfo("0.0.0.0", this->portnum.c_str(), NULL, &this->myinfo) != 0)
          {
-            cout << "Error getting address" << endl;
+            this->logger->writeErrorMessage("Error getting address");
             exit(0);
          }
 
          //bind the socket to the port specified
          if(bind(this->sockdesc, this->myinfo->ai_addr, this->myinfo->ai_addrlen) < 0)
          {
-            cout << "Error binding to socket" << endl;
+            this->logger->writeErrorMessage("Error binding to socket");
             exit(0);
          }
 
-         cout << "Bind successful, using portnum = " << this->portnum << endl;
+         this->logger->writeInfoMessage("Bind successful, using port " + this->portnum);
 
          //setup listener
          if(listen(this->sockdesc, 1) < 0)
          {
-            cout << "Error in listen" << endl;
+            this->logger->writeErrorMessage("Error invoking listen()");
             exit(0);
          }
 
-         cout << "Calling accept" << endl;
+         this->logger->writeInfoMessage("Calling accept()");
 
-         this->connection = accept(this->sockdesc, NULL, NULL);//wait for client connection
+
+         // todo: abstract this into its own function to handle many accept calls
+         //await a client to initiate a connection
+         this->connection = accept(this->sockdesc, NULL, NULL);
 
          if(this->connection < 0)
          {
-             cout << "Error in accept" << endl;
+            this->logger->writeWarningMessage("Error when calling accept()");
              exit(0);
-         } 
+         }
          else
          {
-            cout << "Calling pthread_create with connection = " << this->connection << endl;
+            this->logger->writeInfoMessage("Calling pthread_create where connection number = " + this->connection);
 
+            // exist status of spawned thread
+            int exitStatus;
             //spawn a thread
             pthread_create(&serverThread, NULL, &ServerSocket::handleRequest, (void*)this);
-            cout << "After create" << endl;
-            pthread_join(serverThread, NULL);
+            this->logger->writeInfoMessage("Successfully spawned new thread");
+            pthread_join(serverThread, (void**)&exitStatus);
+
+            this->logger->writeInfoMessage("Thread terminated with status code: " + exitStatus);
          }
       }
 
+      virtual void disconnect()
+      {
+         // todo: cleanup socket
+      }
+
 private:
-   log logger;//used to log information
+   log* logger;//used to log information
    pthread_t serverThread;//used to spawn a thread and handle logging
 };

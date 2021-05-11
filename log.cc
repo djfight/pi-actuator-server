@@ -6,9 +6,13 @@
 #include <string.h>
 #include <string>
 #include <ctime>
+#include <iostream>
+#include<sstream>
+
 #ifndef LOG_H
 #include "log.h"
 #endif
+
 const string log::DEFAULT_LOG_FILE_NAME = "log.txt";
 
 //default constructor
@@ -56,7 +60,7 @@ int log::open()
     //if the file is open the return success else failure
     if(logF.is_open())
 	{
-        log::writeLogRecord("BEGIN");
+        log::writeInfoMessage("BEGIN");
 		
         return log::SUCCESS;
     }
@@ -69,7 +73,7 @@ int log::open()
 //close the log file with a timestamp
 int log::close()
 {
-    log::writeLogRecord("END");
+    log::writeInfoMessage("END");
     logF.close();
     if(logF.is_open())
 	{
@@ -86,8 +90,8 @@ int log::writeLogRecord(string s)
 {
     if(strlen(s.c_str()) <= log::MAX_LOG_STRING)
 	{
-       logF << log::getTimeStamp();
-       logF << s << endl;
+       logF << s;
+
        return log::SUCCESS;
     }
 	else
@@ -96,11 +100,54 @@ int log::writeLogRecord(string s)
     }
 }
 
-//get the current timestamp
-string log::getTimeStamp()
+int log::writeInfoMessage(string message) 
 {
-    time_t result = time(0);
-    char* currentTime = ctime(&result);
+    string timestamp = log::getTimestamp();
+
+    string jsonLogMessage = log::toJsonMessage("INFO", message, timestamp);
+
+    std::cout << jsonLogMessage;
+
+    return log::writeLogRecord(jsonLogMessage);
+}
+
+int log::writeWarningMessage(string message) 
+{
+    string timestamp = log::getTimestamp();
+
+    string jsonLogMessage = log::toJsonMessage("WARNING", message, timestamp);
+
+    std::cout << jsonLogMessage;
+
+    return log::writeLogRecord(jsonLogMessage);
+}
+
+int log::writeErrorMessage(string message) 
+{
+    string timestamp = log::getTimestamp();
+
+    string jsonLogMessage = log::toJsonMessage("ERROR", message, timestamp);
+
+    std::cout << jsonLogMessage;
+
+    return log::writeLogRecord(jsonLogMessage);
+}
+
+string log::toJsonMessage(string logLevel, string message, string timestamp)
+{
+    std::stringstream jsonOutputStream;
+    jsonOutputStream << "{ \"logLevel\":\"" << logLevel << "\", \"timestamp\": \"" << timestamp << "\", \"message\": \"" << message << "\" }\n";
+    return jsonOutputStream.str();
+}
+
+//get the current timestamp
+string log::getTimestamp()
+{
+    time_t currentTime = time(0);
+    tm* time = localtime(&currentTime);
+
+    char buffer[256];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S-%z", time);
 	
-    return currentTime;
+    return buffer;
 }

@@ -4,14 +4,29 @@
  * @author Jarred Light <jlightd@gmail.com>
  */
 
+#include <string>
+
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
-// todo: redefine this struct to fit a contract for acting on GPIO pins.
+#define PACKET_SIZE 18
+
+#define DEVICE_COMMAND 0
+#define TERMINATE_COMMAND 1
+
+struct device
+{
+    int pinNumber;
+    bool signal;
+};
+
 struct message
 {
     int from;
-    char payload[32];
+    int command; // can be DEVICE_COMMAND or TERMINATE_COMMAND
+    struct device deviceStatus;
 };
+
+
 
 #endif

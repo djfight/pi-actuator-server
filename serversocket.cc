@@ -36,10 +36,6 @@ class ServerSocket : public Socket
          this->logger = logger;
       }
 
-      pthread_t getServerThread() {
-         return this->serverThread;
-      }
-
       /**
         * This function handles client communication to the server.
         */
@@ -48,15 +44,16 @@ class ServerSocket : public Socket
          // Note: Why in the world was this ever in my old OS code? It doesn't work with the join paradigm?
          // pthread_detach(pthread_self());
 
-         message msg;
-
+         // extract ServerSocket from thread argument
          ServerSocket* serverSocket = ((ServerSocket*)arg);
 
-         // Show the actual FILE descriptor used
+         // log the file descriptor for the connection
          serverSocket->logger->writeInfoMessage("Server thread, connection = " + to_string(serverSocket->connection));
 
-         //read the setup file name from the client
-         serverSocket->value = read(serverSocket->connection, (char*)&msg, sizeof(message));
+         char buffer[PACKET_SIZE];
+
+         // await the first command
+         serverSocket->value = read(serverSocket->connection, buffer, sizeof(buffer));
 
          if (serverSocket->value < 0)
          {
@@ -69,13 +66,27 @@ class ServerSocket : public Socket
             pthread_exit(0);
          }
 
-         serverSocket->logger->writeInfoMessage(msg.payload);
+         message receivedMessage = serverSocket->parseMessage(buffer);
 
-         // Continue until the message is "quit"
-         while ( strcmp(msg.payload, "Q") != 0 )
+         if (receivedMessage.command == DEVICE_COMMAND)
+         {
+            serverSocket->logger->writeInfoMessage("Received device command from " + to_string(receivedMessage.from));
+            serverSocket->logger->writeInfoMessage("Setting pin #" + to_string(receivedMessage.deviceStatus.pinNumber) + " with signal of " + to_string(receivedMessage.deviceStatus.signal));
+         }
+         else if (receivedMessage.command == TERMINATE_COMMAND)
+         {
+            serverSocket->logger->writeInfoMessage("Received termination command from " + to_string(receivedMessage.from));
+         }
+         else
+         {
+            serverSocket->logger->writeWarningMessage("Received erroneous command from " + to_string(receivedMessage.from));
+         }
+
+         // Continue until receive of terminate command
+         while (receivedMessage.command != TERMINATE_COMMAND)
          {
             // Get the next message
-            serverSocket->value = read(serverSocket->connection, (char*)&msg, sizeof(message));
+            serverSocket->value = read(serverSocket->connection, (char*)&receivedMessage, sizeof(message));
 
             if (serverSocket->value < 0)
             {
@@ -87,9 +98,6 @@ class ServerSocket : public Socket
                serverSocket->logger->writeInfoMessage("Transmission terminated from client");
                pthread_exit(0);
             }
-
-            //write message to log
-            serverSocket->logger->writeInfoMessage(msg.payload);
          }
 
          // Close the connection and gracefully exit
@@ -128,30 +136,37 @@ class ServerSocket : public Socket
 
          this->logger->writeInfoMessage("Bind successful, using port " + this->portnum);
 
-         //setup listener
-         if(listen(this->sockdesc, 1) < 0)
+         //setup listener to only listen to one connection at a time
+         int maxConnections = 1;
+         if(listen(this->sockdesc, maxConnections) < 0)
          {
             this->logger->writeErrorMessage("Error invoking listen()");
             exit(0);
          }
+      }
 
+      virtual void disconnect()
+      {
+         close(this->sockdesc);
+      }
+
+      void acceptNewConnection()
+      {
          this->logger->writeInfoMessage("Calling accept()");
 
-
-         // todo: abstract this into its own function to handle many accept calls
          //await a client to initiate a connection
          this->connection = accept(this->sockdesc, NULL, NULL);
 
+         // if the accept call fails, then log it and return
          if(this->connection < 0)
          {
             this->logger->writeWarningMessage("Error when calling accept()");
-             exit(0);
          }
          else
          {
             this->logger->writeInfoMessage("Calling pthread_create where connection number = " + to_string(this->connection));
 
-            // exist status of spawned thread
+            // exit status of spawned thread
             int exitStatus;
             //spawn a thread
             pthread_create(&serverThread, NULL, &ServerSocket::handleRequest, (void*)this);
@@ -162,9 +177,28 @@ class ServerSocket : public Socket
          }
       }
 
-      virtual void disconnect()
+      message parseMessage(char buffer[])
       {
-         // todo: cleanup socket
+         // assupmtion: buffer will always be equal to the packet size
+         string bufferString(buffer);
+
+         // extract struct data from buffer
+         int from = atoi(bufferString.substr(0, 9).c_str());
+         int command = atoi(bufferString.substr(10, 11).c_str());
+         int pinNumber = atoi(bufferString.substr(12, 14).c_str());
+         bool signal = atoi(bufferString.substr(15, 16).c_str()) == 1;
+
+         message m;
+         m.from = from;
+         m.command = command;
+
+         device deviceStatus;
+         deviceStatus.pinNumber = pinNumber;
+         deviceStatus.signal = signal;
+
+         m.deviceStatus = deviceStatus;
+
+         return m;
       }
 
 private:

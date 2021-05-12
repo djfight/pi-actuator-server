@@ -30,7 +30,7 @@ using namespace std;
 
 int main(int argc, char** argv )
 {
-   Socket* serverSocket;//create a server socket pointer
+   ServerSocket* serverSocket;//create a server socket pointer
    char portnum[STRLEN];//create a portnumber array
    int optionIndex;//for return value of getopt()
 
@@ -61,8 +61,14 @@ int main(int argc, char** argv )
    }
 
    //create the server socket and setup the connection
-   serverSocket = new ServerSocket(portnum, &logger);
+   string strPortnum(portnum);
+   serverSocket = new ServerSocket(strPortnum, &logger);
    serverSocket->setupSocketConnection();
+
+   while(true)
+   {
+      serverSocket->acceptNewConnection();
+   }
 
    logger.close();
 

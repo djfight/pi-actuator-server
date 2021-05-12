@@ -10,8 +10,11 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <stdlib.h>
 #include <string.h>
+#include <cmath>
+#include <iomanip>
 // Include the pthread library
 #include <pthread.h>
 //bring in socket code
@@ -64,40 +67,54 @@ class ClientSocket : public Socket
         }
 
         cout << "Connection successful" << endl;
-		  
-        //copy the log file name into the buffer if the length is greater than zero otherwise use log.txt
-        (strlen(logfilename) > 0) ?
-			strncpy(msg.payload, this->logfilename, sizeof(msg.payload)) 
-			: strncpy(msg.payload, "log.txt", sizeof(msg.payload));
-		
-		//send the message
-        this->value = write(this->sockdesc, (char*)&msg, sizeof(message));
     }
 
     /**
-     * // todo: refactor this to use a different struct
-     * This function writes down a pipe to the logging process.
+     * This function writes out a command to the pi actuation server
      * @param from
      * @param payload
      */
-    void writeToLog(int from, string payload)
+    void sendCommand(string from, int command, device deviceStatus)
 	{
         message m;
-        m.from = from;
-        strncpy(m.payload, payload.c_str(), sizeof(message));
+        m.from = 1;
+        m.command = command;
+        m.deviceStatus = deviceStatus;
+
+        string serializedMessage = this->serializeMessage(m);
 
         //send the message
-        this->value = write(this->sockdesc, (char*)&m, sizeof(message));
+        this->value = write(this->sockdesc, serializedMessage.c_str(), sizeof(serializedMessage));
     }
 
-    void closeConnection()
-	{
-        close(this->sockdesc);
+    string serializeMessage(message m)
+    {
+        // assupmtion: buffer will always be equal to the packet size
+        stringstream bufferStream;
+
+        // load buffer[0] to buffer[9] with "from" field
+        int fromWidth = 10;
+        int fromSpaces = int(log10(m.from));
+        bufferStream << setw(fromWidth - fromSpaces) << m.from;
+
+        // load buffer[10] to buffer[11] with "command" field
+        bufferStream << " " << m.command;
+
+        // load buffer[12] to buffer[14] with "pinNumber" field
+        int pinNumberWidth = 2;
+        int pinNumberSpaces = int(log10(m.deviceStatus.pinNumber));
+        bufferStream << " " << setw(pinNumberWidth - pinNumberSpaces) << m.deviceStatus.pinNumber;
+
+        // load buffer[15] to buffer[16] with "signal" field
+        bufferStream << " " << m.deviceStatus.signal;
+
+        return bufferStream.str();
     }
+
 
     virtual void disconnect()
     {
-        // todo: cleanup socket
+        close(this->sockdesc);
     }
 	
 	private:

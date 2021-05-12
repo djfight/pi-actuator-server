@@ -84,10 +84,16 @@ int main(int argc, char** argv)
 
     clientSocket->setupSocketConnection();
 
-    clientSocket->writeToLog(1, "Q");
+    device deviceStatus;
+    deviceStatus.pinNumber = 10;
+    deviceStatus.signal = 1;
+    clientSocket->sendCommand("Test-Client", DEVICE_COMMAND, deviceStatus);
+
+    // deviceStatus.signal = 0;
+    // clientSocket->sendCommand("Test-Client", DEVICE_COMMAND, deviceStatus);
 
     // close the socket connection after everything has finished up
-    clientSocket->closeConnection();
+    clientSocket->disconnect();
 
     return 0;
 }

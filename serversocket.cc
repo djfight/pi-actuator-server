@@ -34,6 +34,7 @@ class ServerSocket : public Socket
       {
          this->portnum = portnum;
          this->logger = logger;
+         this->retries = 0;
       }
 
       /**
@@ -160,10 +161,18 @@ class ServerSocket : public Socket
          // if the accept call fails, then log it and return
          if(this->connection < 0)
          {
-            this->logger->writeWarningMessage("Error when calling accept()");
+            if(this->retries > 5)
+            {
+               this->logger->writeErrorMessage("Max retries exceeded. Status code:" + to_string(this->connection));
+               exit(0);
+            }
+
+            this->logger->writeWarningMessage("Error when calling accept(). Status code:" + to_string(this->connection));
+            this->retries++;
          }
          else
          {
+            this->retries = 0;
             this->logger->writeInfoMessage("Calling pthread_create where connection number = " + to_string(this->connection));
 
             // exit status of spawned thread
@@ -204,4 +213,5 @@ class ServerSocket : public Socket
 private:
    log* logger;//used to log information
    pthread_t serverThread;//used to spawn a thread and handle logging
+   int retries;
 };

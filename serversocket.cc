@@ -59,14 +59,15 @@ class ServerSocket : public Socket
          if (serverSocket->value < 0)
          {
             serverSocket->logger->writeErrorMessage("Error on invoking recv()");
-            close(serverSocket->connection);
+            int closeStatus = close(serverSocket->connection);
+            serverSocket->logger->writeInfoMessage("Closing client connection with status: " + to_string(closeStatus));
             pthread_exit(0);
          }
          else if (serverSocket->value == 0)
          {
             serverSocket->logger->writeInfoMessage("Transmission terminated from client");
             int closeStatus = close(serverSocket->connection);
-            serverSocket->logger->writeInfoMessage("Closing client connection: " + to_string(closeStatus));
+            serverSocket->logger->writeInfoMessage("Closing client connection with status: " + to_string(closeStatus));
             pthread_exit(0);
          }
 
@@ -95,20 +96,22 @@ class ServerSocket : public Socket
             if (serverSocket->value < 0)
             {
                serverSocket->logger->writeErrorMessage("Error on invoking recv()");
-               close(serverSocket->connection);
+               int closeStatus = close(serverSocket->connection);
+               serverSocket->logger->writeInfoMessage("Closing client connection with status: " + to_string(closeStatus));
                pthread_exit(0);
             }
             else if (serverSocket->value == 0)
             {
                serverSocket->logger->writeInfoMessage("Transmission terminated from client");
                int closeStatus = close(serverSocket->connection);
-               serverSocket->logger->writeInfoMessage("Closing client connection: " + to_string(closeStatus));
+               serverSocket->logger->writeInfoMessage("Closing client connection with status: " + to_string(closeStatus));
                pthread_exit(0);
             }
          }
 
          // Close the connection and gracefully exit
-         close(serverSocket->connection);
+         int closeStatus = close(serverSocket->connection);
+         serverSocket->logger->writeInfoMessage("Closing client connection with status: " + to_string(closeStatus));
          pthread_exit(0);
       }
 

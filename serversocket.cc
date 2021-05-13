@@ -59,11 +59,13 @@ class ServerSocket : public Socket
          if (serverSocket->value < 0)
          {
             serverSocket->logger->writeErrorMessage("Error on invoking recv()");
+            close(serverSocket->connection);
             pthread_exit(0);
          }
          else if (serverSocket->value == 0)
          {
             serverSocket->logger->writeInfoMessage("Transmission terminated from client");
+            close(serverSocket->connection);
             pthread_exit(0);
          }
 
@@ -92,11 +94,13 @@ class ServerSocket : public Socket
             if (serverSocket->value < 0)
             {
                serverSocket->logger->writeErrorMessage("Error on invoking recv()");
+               close(serverSocket->connection);
                pthread_exit(0);
             }
             else if (serverSocket->value == 0)
             {
                serverSocket->logger->writeInfoMessage("Transmission terminated from client");
+               close(serverSocket->connection);
                pthread_exit(0);
             }
          }
@@ -163,6 +167,8 @@ class ServerSocket : public Socket
          {
             if(this->retries > 5)
             {
+               // if accept critically fails, then log the error
+               perror("accept");
                this->logger->writeErrorMessage("Max retries exceeded. Status code:" + to_string(this->connection));
                exit(0);
             }

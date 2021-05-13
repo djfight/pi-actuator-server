@@ -100,7 +100,8 @@ class ServerSocket : public Socket
             else if (serverSocket->value == 0)
             {
                serverSocket->logger->writeInfoMessage("Transmission terminated from client");
-               close(serverSocket->connection);
+               int closeStatus = close(serverSocket->connection);
+               serverSocket->logger->writeInfoMessage("Closing client connection: " + to_string(closeStatus));
                pthread_exit(0);
             }
          }

@@ -74,17 +74,21 @@ class ClientSocket : public Socket
      * @param from
      * @param payload
      */
-    void sendCommand(string from, int command, device deviceStatus)
+    void sendCommand(int command, int pinNumber, int signal)
 	{
         message m;
-        m.from = 1;
         m.command = command;
-        m.deviceStatus = deviceStatus;
+        m.pinNumber = pinNumber;
+        m.signal = signal;
+
+        char buffer[PACKET_SIZE];
 
         string serializedMessage = this->serializeMessage(m);
 
+        strncpy(buffer, serializedMessage.c_str(), sizeof(buffer));
+
         //send the message
-        this->value = write(this->sockdesc, serializedMessage.c_str(), sizeof(serializedMessage));
+        this->value = write(this->sockdesc, buffer, sizeof(buffer));
     }
 
     string serializeMessage(message m)
@@ -92,23 +96,17 @@ class ClientSocket : public Socket
         // assupmtion: buffer will always be equal to the packet size
         stringstream bufferStream;
 
-        // load buffer[0] to buffer[9] with "from" field
-        int fromWidth = 10;
-        int fromSpaces = int(log10(m.from));
-        bufferStream << setw(fromWidth - fromSpaces) << m.from;
-
-        // load buffer[10] to buffer[11] with "command" field
-        bufferStream << " " << m.command;
-
-        // load buffer[12] to buffer[14] with "pinNumber" field
         int pinNumberWidth = 2;
-        int pinNumberSpaces = int(log10(m.deviceStatus.pinNumber));
-        bufferStream << " " << setw(pinNumberWidth - pinNumberSpaces) << m.deviceStatus.pinNumber;
+        int pinNumberSpaces = int(log10(m.pinNumber));
 
-        // load buffer[15] to buffer[16] with "signal" field
-        bufferStream << " " << m.deviceStatus.signal;
+        // load buffer[0] to buffer[9] with "from" field
+        bufferStream << m.command << " " << setw(pinNumberWidth - pinNumberSpaces) << m.pinNumber << " " << m.signal;
 
-        return bufferStream.str();
+        string serializedMessage = bufferStream.str();
+
+        bufferStream.clear();
+
+        return serializedMessage;
     }
 
 

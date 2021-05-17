@@ -21,6 +21,7 @@
 #include "message.h"
 #include "socket.h"
 #include "log.h"
+#include "connection.cc"
 using namespace std;
 #endif
 
@@ -35,84 +36,6 @@ class ServerSocket : public Socket
          this->portnum = portnum;
          this->logger = logger;
          this->retries = 0;
-      }
-
-      /**
-        * This function handles client communication to the server.
-        */
-      static void* handleRequest(void* arg)
-      {
-         // Note: Why in the world was this ever in my old OS code? It doesn't work with the join paradigm?
-         // pthread_detach(pthread_self());
-
-         // extract ServerSocket from thread argument
-         ServerSocket* serverSocket = ((ServerSocket*)arg);
-
-         // log the file descriptor for the connection
-         serverSocket->logger->writeInfoMessage("Server thread, connection = " + to_string(serverSocket->connection));
-
-         char buffer[PACKET_SIZE];
-
-         // await the first command
-         serverSocket->value = read(serverSocket->connection, buffer, sizeof(buffer));
-
-         if (serverSocket->value < 0)
-         {
-            serverSocket->logger->writeErrorMessage("Error on invoking recv()");
-            int closeStatus = close(serverSocket->connection);
-            serverSocket->logger->writeInfoMessage("Closing client connection with status: " + to_string(closeStatus));
-            pthread_exit(0);
-         }
-         else if (serverSocket->value == 0)
-         {
-            serverSocket->logger->writeInfoMessage("Transmission terminated from client");
-            int closeStatus = close(serverSocket->connection);
-            serverSocket->logger->writeInfoMessage("Closing client connection with status: " + to_string(closeStatus));
-            pthread_exit(0);
-         }
-
-         message receivedMessage = serverSocket->parseMessage(buffer);
-
-         if (receivedMessage.command == DEVICE_COMMAND)
-         {
-            serverSocket->logger->writeInfoMessage("Received device command from " + to_string(receivedMessage.from));
-            serverSocket->logger->writeInfoMessage("Setting pin #" + to_string(receivedMessage.deviceStatus.pinNumber) + " with signal of " + to_string(receivedMessage.deviceStatus.signal));
-         }
-         else if (receivedMessage.command == TERMINATE_COMMAND)
-         {
-            serverSocket->logger->writeInfoMessage("Received termination command from " + to_string(receivedMessage.from));
-         }
-         else
-         {
-            serverSocket->logger->writeWarningMessage("Received erroneous command from " + to_string(receivedMessage.from));
-         }
-
-         // Continue until receive of terminate command
-         while (receivedMessage.command != TERMINATE_COMMAND)
-         {
-            // Get the next message
-            serverSocket->value = read(serverSocket->connection, (char*)&receivedMessage, sizeof(message));
-
-            if (serverSocket->value < 0)
-            {
-               serverSocket->logger->writeErrorMessage("Error on invoking recv()");
-               int closeStatus = close(serverSocket->connection);
-               serverSocket->logger->writeInfoMessage("Closing client connection with status: " + to_string(closeStatus));
-               pthread_exit(0);
-            }
-            else if (serverSocket->value == 0)
-            {
-               serverSocket->logger->writeInfoMessage("Transmission terminated from client");
-               int closeStatus = close(serverSocket->connection);
-               serverSocket->logger->writeInfoMessage("Closing client connection with status: " + to_string(closeStatus));
-               pthread_exit(0);
-            }
-         }
-
-         // Close the connection and gracefully exit
-         int closeStatus = close(serverSocket->connection);
-         serverSocket->logger->writeInfoMessage("Closing client connection with status: " + to_string(closeStatus));
-         pthread_exit(0);
       }
 
       /**
@@ -131,7 +54,7 @@ class ServerSocket : public Socket
          }
 
          //store addressing information
-         if( getaddrinfo("0.0.0.0", this->portnum.c_str(), NULL, &this->myinfo) != 0)
+         if(getaddrinfo("0.0.0.0", this->portnum.c_str(), NULL, &this->myinfo) != 0)
          {
             this->logger->writeErrorMessage("Error getting address");
             exit(0);
@@ -185,11 +108,12 @@ class ServerSocket : public Socket
          {
             this->retries = 0;
             this->logger->writeInfoMessage("Calling pthread_create where connection number = " + to_string(this->connection));
+            this->clientConnection = new Connection(this->connection, this->logger);
 
             // exit status of spawned thread
             int exitStatus;
             //spawn a thread
-            pthread_create(&serverThread, NULL, &ServerSocket::handleRequest, (void*)this);
+            pthread_create(&serverThread, NULL, &handleRequest, (void*)this->clientConnection);
             this->logger->writeInfoMessage("Successfully spawned new thread");
             pthread_join(serverThread, (void**)&exitStatus);
 
@@ -197,32 +121,29 @@ class ServerSocket : public Socket
          }
       }
 
-      message parseMessage(char buffer[])
+   private:
+      log* logger;//used to log information
+      pthread_t serverThread;//used to spawn a thread and handle logging
+      int retries;
+      Connection* clientConnection;
+
+      static void* handleRequest(void* arg)
       {
-         // assupmtion: buffer will always be equal to the packet size
-         string bufferString(buffer);
+         Connection* connection = ((Connection*)arg);
 
-         // extract struct data from buffer
-         int from = atoi(bufferString.substr(0, 9).c_str());
-         int command = atoi(bufferString.substr(10, 11).c_str());
-         int pinNumber = atoi(bufferString.substr(12, 14).c_str());
-         bool signal = atoi(bufferString.substr(15, 16).c_str()) == 1;
+         int handleStatus = SUCCESSFUL_HANDLE;
+         message message;
 
-         message m;
-         m.from = from;
-         m.command = command;
+         connection->getLogger()->writeInfoMessage("Connection request, connection: " + to_string(connection->getSocketDescriptor()));
 
-         device deviceStatus;
-         deviceStatus.pinNumber = pinNumber;
-         deviceStatus.signal = signal;
+         while(handleStatus != TERMINATE_CONNECTION)
+         {
+            message = connection->readMessage();
 
-         m.deviceStatus = deviceStatus;
+            handleStatus = connection->handleMessage(message);
+         }
 
-         return m;
+         connection->closeConnection();
+         pthread_exit(0);
       }
-
-private:
-   log* logger;//used to log information
-   pthread_t serverThread;//used to spawn a thread and handle logging
-   int retries;
 };

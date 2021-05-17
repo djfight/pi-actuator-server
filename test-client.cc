@@ -82,18 +82,20 @@ int main(int argc, char** argv)
     //client socket
     ClientSocket* clientSocket = new ClientSocket(hostname, portnumber, logfilename);
 
-    clientSocket->setupSocketConnection();
+    int x = 1;
 
-    device deviceStatus;
-    deviceStatus.pinNumber = 10;
-    deviceStatus.signal = 1;
-    clientSocket->sendCommand("Test-Client", DEVICE_COMMAND, deviceStatus);
+    while(x > 0)
+    {
+        clientSocket->setupSocketConnection();
 
-    // deviceStatus.signal = 0;
-    // clientSocket->sendCommand("Test-Client", DEVICE_COMMAND, deviceStatus);
+        clientSocket->sendCommand(DEVICE_COMMAND, 10, 1);
 
-    // close the socket connection after everything has finished up
-    clientSocket->disconnect();
+        clientSocket->sendCommand(DEVICE_COMMAND, 10, 0);
+
+        // close the socket connection after everything has finished up
+        clientSocket->disconnect();
+        x--;
+    }
 
     return 0;
 }

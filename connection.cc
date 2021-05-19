@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <pthread.h>
+#include <errno.h>
+#include <wiringPi.h>
 
 #ifndef CONNECTION_H
 #include "connection.h"
@@ -18,6 +20,10 @@ Connection::Connection(int fileDescriptor, log* logger)
 {
     this->fileDescriptor = fileDescriptor;
     this->logger = logger;
+    wiringPiSetup();
+    pinMode(0, OUTPUT);
+    pinMode(1, OUTPUT);
+    pinMode(2, OUTPUT);
 }
 
 void Connection::closeConnection()
@@ -46,9 +52,12 @@ message Connection::readMessage()
     {
         this->logger->writeInfoMessage("Read call failed with status: " + to_string(readStatus));
         message.command = ERROR_COMMAND;
+	perror("read");
 
         return message;
     }
+
+    this->logger->writeInfoMessage("Read Status: " + to_string(readStatus));
 
     message = this->parseMessage(buffer);
 
@@ -64,6 +73,9 @@ message Connection::parseMessage(char buffer[])
 
     if(bufferString.length() != PACKET_SIZE -1)
     {
+	this->logger->writeWarningMessage("Received incorrect packet length");
+	this->logger->writeInfoMessage(buffer);
+	this->logger->writeInfoMessage(bufferString);
         m.command = ERROR_COMMAND;
         
         return m;
@@ -91,6 +103,8 @@ int Connection::handleMessage(message message)
         this->logger->writeInfoMessage("Received device command");
         this->logger->writeInfoMessage("Setting pin #" + to_string(message.pinNumber) + " with signal of " + to_string(message.signal));
         status = SUCCESSFUL_HANDLE;
+
+	digitalWrite(message.pinNumber, message.signal);
     }
     else if(message.command == TERMINATE_COMMAND)
     {

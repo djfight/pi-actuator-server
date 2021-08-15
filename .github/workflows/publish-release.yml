@@ -1,0 +1,20 @@
+name: Publish Release
+
+on:
+  push:
+    branches: [ main, automation ]
+
+jobs:
+  build:
+
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: make
+      run: make
+    - uses: actions/checkout@v2 
+      name: upload build artifacts
+      with:
+        name: pi-actuator-server
+        path: pi-actuator-server

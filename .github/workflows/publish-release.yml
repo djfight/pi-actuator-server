@@ -15,5 +15,5 @@ jobs:
       run: make
     - uses: actions/upload-artifact@v2
       with:
-        name: pi-actuator-server
+        name: pi-actuator-server-${{ github.run_id  }}
         path: pi-actuator-server

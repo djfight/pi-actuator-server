@@ -13,8 +13,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: make
       run: make
-    - uses: actions/checkout@v2 
-      name: upload build artifacts
+    - uses: actions/checkout@v2
       with:
         name: pi-actuator-server
         path: pi-actuator-server
